@@ -45,7 +45,8 @@ public class SliverEntity extends MonsterEntity implements IAnimatable {
 
     private <E extends IAnimatable> PlayState predicate1(AnimationEvent<E> event) {
         if(getAttacking() == 1) {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.sliver.attack", true));
+            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.sliver.attack", false));
+            event.getController().clearAnimationCache();
         }
         return PlayState.CONTINUE;
     }
@@ -114,7 +115,7 @@ public class SliverEntity extends MonsterEntity implements IAnimatable {
             this.getAttribute(Attributes.ARMOR).setBaseValue(5);
         }
         if(this.getVariant()==4) {
-            this.getAttribute(Attributes.FOLLOW_RANGE).setBaseValue(64);
+            this.getAttribute(Attributes.FOLLOW_RANGE).setBaseValue(20);
         }
         if(this.getVariant()==5) {
             this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(.4);
@@ -144,7 +145,7 @@ public class SliverEntity extends MonsterEntity implements IAnimatable {
                 .createMutableAttribute(Attributes.ARMOR_TOUGHNESS, 0)
                 .createMutableAttribute(Attributes.ATTACK_DAMAGE, 1)
                 .createMutableAttribute(Attributes.ATTACK_KNOCKBACK, 0)
-                .createMutableAttribute(Attributes.FOLLOW_RANGE, 32.0D);
+                .createMutableAttribute(Attributes.FOLLOW_RANGE, 16.0D);
     }
 
     public void update() {
@@ -180,8 +181,6 @@ public class SliverEntity extends MonsterEntity implements IAnimatable {
                 attackList.remove(attackList.get(i));
             }
         }
-        ITextComponent name = new StringTextComponent("" + getAttacking());
-        this.setCustomName(name);
     }
 
     @Override

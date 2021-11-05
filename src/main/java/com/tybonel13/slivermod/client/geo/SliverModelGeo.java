@@ -26,6 +26,7 @@ public class SliverModelGeo extends AnimatedGeoModel {
     protected static final ResourceLocation TEXTURE_purple = new ResourceLocation(Slivers.MOD_ID, "textures/entity/sliver_purple.png");
     protected static final ResourceLocation TEXTURE_black = new ResourceLocation(Slivers.MOD_ID, "textures/entity/sliver_black.png");
     protected static final ResourceLocation TEXTURE_white = new ResourceLocation(Slivers.MOD_ID, "textures/entity/sliver_white.png");
+    protected static final ResourceLocation TEXTURE_ender = new ResourceLocation(Slivers.MOD_ID, "textures/entity/sliver_ender.png");
 
     @Override
     public ResourceLocation getTextureLocation(Object entity) {
@@ -49,6 +50,8 @@ public class SliverModelGeo extends AnimatedGeoModel {
                     return TEXTURE_black;
                 case 8:
                     return TEXTURE_white;
+                case 9:
+                    return TEXTURE_ender;
             }
         }
         return TEXTURE_basic;

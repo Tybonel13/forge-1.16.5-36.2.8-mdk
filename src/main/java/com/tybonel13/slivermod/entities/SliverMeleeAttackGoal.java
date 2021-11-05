@@ -7,6 +7,10 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.pathfinding.Path;
 import net.minecraft.util.EntityPredicates;
 import net.minecraft.util.Hand;
+import net.minecraft.entity.ai.goal.Goal;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
 
 public class SliverMeleeAttackGoal extends MeleeAttackGoal {
     protected final SliverEntity attacker;
@@ -37,35 +41,8 @@ public class SliverMeleeAttackGoal extends MeleeAttackGoal {
      * Returns whether execution should begin. You can also read and cache any state necessary for execution in this
      * method as well.
      */
-    public boolean shouldExecute() {
-        long i = this.attacker.world.getGameTime();
-        if (i - this.lastCheckTime < 20L) {
-            return false;
-        } else {
-            this.lastCheckTime = i;
-            LivingEntity livingentity = this.attacker.getAttackTarget();
-            if (livingentity == null) {
-                return false;
-            } else if (!livingentity.isAlive()) {
-                return false;
-            } else {
-                if (canPenalize) {
-                    if (--this.delayCounter <= 0) {
-                        this.path = this.attacker.getNavigator().pathfind(livingentity, 0);
-                        this.delayCounter = 4 + this.attacker.getRNG().nextInt(7);
-                        return this.path != null;
-                    } else {
-                        return true;
-                    }
-                }
-                this.path = this.attacker.getNavigator().pathfind(livingentity, 0);
-                if (this.path != null) {
-                    return true;
-                } else {
-                    return this.getAttackReachSqr(livingentity) >= this.attacker.getDistanceSq(livingentity.getPosX(), livingentity.getPosY(), livingentity.getPosZ());
-                }
-            }
-        }
+    public boolean shouldExecute() { //canUse
+        return super.shouldExecute();
     }
 
     /**
@@ -89,25 +66,19 @@ public class SliverMeleeAttackGoal extends MeleeAttackGoal {
     /**
      * Execute a one shot task or start executing a continuous task
      */
-    public void startExecuting() {
-        this.attacker.getNavigator().setPath(this.path, this.speedTowardsTarget);
-        this.attacker.setAggroed(true);
-        this.delayCounter = 0;
-        this.swingCooldown = 0;
+    public void startExecuting() { //start
+        super.startExecuting();
     }
 
     /**
      * Reset the task's internal state. Called when this task is interrupted by another one
      */
-    public void resetTask() {
-        LivingEntity livingentity = this.attacker.getAttackTarget();
-        if (!EntityPredicates.CAN_AI_TARGET.test(livingentity)) {
-            this.attacker.setAttackTarget((LivingEntity)null);
-        }
-
-        this.attacker.setAggroed(false);
-        this.attacker.getNavigator().clearPath();
+    public void resetTask() { //stop
+        super.resetTask();
+        this.attacker.setAttacking(0);
     }
+
+
 
     /**
      * Keep ticking a continuous task that has already been started
@@ -122,6 +93,18 @@ public class SliverMeleeAttackGoal extends MeleeAttackGoal {
             this.targetY = livingentity.getPosY();
             this.targetZ = livingentity.getPosZ();
             this.delayCounter = 4 + this.attacker.getRNG().nextInt(7);
+            if (this.canPenalize) {
+                this.delayCounter += failedPathFindingPenalty;
+                if (this.attacker.getNavigator().getPath() != null) {
+                    net.minecraft.pathfinding.PathPoint finalPathPoint = this.attacker.getNavigator().getPath().getFinalPathPoint();
+                    if (finalPathPoint != null && livingentity.getDistanceSq(finalPathPoint.x, finalPathPoint.y, finalPathPoint.z) < 1)
+                        failedPathFindingPenalty = 0;
+                    else
+                        failedPathFindingPenalty += 10;
+                } else {
+                    failedPathFindingPenalty += 10;
+                }
+            }
             if (d0 > 1024.0D) {
                 this.delayCounter += 10;
             } else if (d0 > 256.0D) {
@@ -133,30 +116,19 @@ public class SliverMeleeAttackGoal extends MeleeAttackGoal {
             }
         }
 
-        this.swingCooldown = Math.max(this.swingCooldown - 0, 0);
+        this.swingCooldown = Math.max(this.swingCooldown - 1, 0);
         this.checkAndPerformAttack(livingentity, d0);
-    }
-
-    public void start() {
-        super.start();
-    }
-
-    public boolean canUse() {
-        return super.canUse();
-    }
-
-    public void stop() {
-        super.stop();
-        this.attacker.setAttacking(0);
     }
 
     @Override
     protected void checkAndPerformAttack(LivingEntity enemy, double distToEnemySqr) {
         double d0 = this.getAttackReachSqr(enemy);
-        if (distToEnemySqr <= d0 && this.swingCooldown <= 0) {
+        if ((distToEnemySqr <= d0 && this.swingCooldown <= 5) && !(distToEnemySqr <= d0 && this.swingCooldown <= 0)) {
+            this.attacker.setAttacking(1);
+        }
+        else if (distToEnemySqr <= d0 && this.swingCooldown <= 0) {
             this.resetSwingCooldown();
             this.attacker.swingArm(Hand.MAIN_HAND);
-            ((SliverEntity)this.attacker).setAttacking(attackcheck);
             this.attacker.attackEntityAsMob(enemy);
         }
     }
